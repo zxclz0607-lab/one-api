@@ -1,0 +1,39 @@
+name: Build One API Reality Image
+
+# 触发条件：提交代码到main分支，且修改了web目录下的文件
+on:
+  push:
+    branches: [ main ]
+    paths: [ "web/**" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 拉取你Fork的仓库代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 配置Docker构建环境
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. 登录GitHub容器仓库（自动使用内置Token，无需手动配置）
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4. 构建并推送自定义镜像
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .  # 基于仓库根目录的Dockerfile构建
+          push: true   # 推送镜像到仓库
+          # 镜像标签：ghcr.io/你的GitHub账号/one-api-reality:latest
+          tags: ghcr.io/${{ github.actor }}/one-api-reality:latest
+          # 启用缓存，加速后续构建
+          cache-from: type=registry,ref=ghcr.io/${{ github.actor }}/one-api-reality:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.actor }}/one-api-reality:buildcache,mode=max
